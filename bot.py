@@ -1,7 +1,14 @@
+import os
 import telebot
+
+from dotenv import load_dotenv
 from telebot import types
 
-bot = telebot.TeleBot(token='placeholder')
+
+load_dotenv()
+
+bot_token = os.getenv('SET_SAILS_BOT_TOKEN')
+bot = telebot.TeleBot(token=bot_token)
 name = 'Аноним'
 HELP_TEXT = (
     'Этот бот знает следующие команды:'
