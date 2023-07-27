@@ -5,11 +5,6 @@ from dotenv import load_dotenv
 from telebot import types
 
 
-load_dotenv()
-
-bot_token = os.getenv('SET_SAILS_BOT_TOKEN')
-bot = telebot.TeleBot(token=bot_token)
-name = 'Аноним'
 HELP_TEXT = (
     'Этот бот знает следующие команды:'
     '\n/repo - выводит ссылку на репозиторий с исходным кодом;'
@@ -25,6 +20,11 @@ HELP_TEXT = (
     '\n/sql - бот отправляет голосовое сообщение про SQL.'
 )
 
+load_dotenv()
+
+BOT_TOKEN = os.getenv('SET_SAILS_BOT_TOKEN')
+bot = telebot.TeleBot(token=BOT_TOKEN)
+name = 'Аноним'
 
 # функции под команды
 @bot.message_handler(content_types=['text'], commands=['repo'])
@@ -33,7 +33,10 @@ def repo(message):
 
     bot.send_message(
         chat_id=message.chat.id,
-        text='Здесь будет ссылка на репозиторий'
+        text=(
+            'https://github.com/andrzej-skuridin/'
+            'yandex-bot-for-teenagers-test-assigment.git'
+        )
     )
 
 
@@ -62,7 +65,7 @@ def start(message):
 
 
 def acquaintance(message):
-    """ Устанавлиевает обращение к пользователю. """
+    """ Устанавливает обращение к пользователю. """
 
     global name
     name = message.text
@@ -205,7 +208,7 @@ def send_voice_on_gpt(message):
 
     bot.send_voice(
         chat_id=message.chat.id,
-        voice=open('media/audio_test.wav', 'rb'),
+        voice=open('media/audio_gpt.wav', 'rb'),
         caption=f'Crash-course по GPT для бабушек. И для тебя, {name}.'
     )
 
@@ -216,7 +219,7 @@ def send_voice_on_sql(message):
 
     bot.send_voice(
         chat_id=message.chat.id,
-        voice=open('media/audio_test.wav', 'rb'),
+        voice=open('media/audio_sql.wav', 'rb'),
         caption='О различиях между SQL и NoSQL.'
     )
 
@@ -227,7 +230,7 @@ def send_voice_on_love(message):
 
     bot.send_voice(
         chat_id=message.chat.id,
-        voice=open('media/audio_test.wav', 'rb'),
+        voice=open('media/audio_love.wav', 'rb'),
         caption=f'Послушай, {name}, сказ о любви.'
     )
 
