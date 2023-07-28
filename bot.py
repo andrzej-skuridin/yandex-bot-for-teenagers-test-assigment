@@ -1,4 +1,7 @@
+import sqlite3
 import os
+from typing import Tuple
+
 import telebot
 
 from dotenv import load_dotenv
@@ -24,7 +27,62 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv('SET_SAILS_BOT_TOKEN')
 bot = telebot.TeleBot(token=BOT_TOKEN)
-name = 'Аноним'
+
+
+# база данных
+def create_database():
+    """ Создание БД. """
+    conn = sqlite3.connect('usernames.db')
+    cur = conn.cursor()
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS users(
+        user_id INT PRIMARY KEY,
+        name TEXT);"""
+    )
+    conn.commit()
+
+
+def add_to_database(user_data: Tuple[int, str]) -> None:
+    """ Добавление имени пользователя в БД. """
+
+    conn = sqlite3.connect('usernames.db')
+    cur = conn.cursor()
+
+    # проверяем наличие записи
+    cur.execute(
+        'SELECT count(*) FROM users WHERE user_id = ?', (user_data[0],)
+    )
+
+    # если нет такой записи
+    if cur.fetchone()[0] == 0:
+        cur.execute('INSERT INTO users VALUES(?, ?);', user_data)
+        conn.commit()
+
+    # если такая запись есть
+    else:
+        cur.execute(
+            'UPDATE users SET name = ? WHERE user_id = ?;',
+            (user_data[1], user_data[0])
+        )
+        conn.commit()
+
+
+def read_from_database(user_id: int):
+    """ Чтение имени пользователя из БД. """
+
+    conn = sqlite3.connect('usernames.db')
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT name FROM users WHERE user_id = ?;', (user_id,)
+    )
+
+    # на случай, если что-то случится с БД
+    name = cur.fetchone()
+    if name is None:
+        return 'Пользователь',
+
+    return name
+
 
 # функции под команды
 @bot.message_handler(content_types=['text'], commands=['repo'])
@@ -54,9 +112,12 @@ def helper(message):
 def start(message):
     """ Здоровается и предлагает выбрать обращение к пользователю. """
 
+    user_id = message.from_user.id
+    add_to_database(user_data=(user_id, 'Пользователь'))
+
     bot.send_message(
         chat_id=message.chat.id,
-        text=f'Привет, {name}! Как к тебе обращаться?'
+        text='Привет, пользователь! Как к тебе обращаться?'
     )
     bot.register_next_step_handler(
         message=message,
@@ -67,8 +128,9 @@ def start(message):
 def acquaintance(message):
     """ Устанавливает обращение к пользователю. """
 
-    global name
+    user_id = message.from_user.id
     name = message.text
+    add_to_database(user_data=(user_id, name))
     if name in ('Аноним', 'Анонимус', 'Anonymous'):
         bot.send_photo(
             chat_id=message.chat.id,
@@ -77,7 +139,8 @@ def acquaintance(message):
         )
     bot.send_message(
         chat_id=message.chat.id,
-        text=f'Отлично, привет ещё раз, {name}!'
+        text='Отлично, привет ещё раз, '
+             f'{read_from_database(user_id=message.chat.id)[0]}!'
              '\nЧтобы открыть главное меню, введи "/menu".'
              '\nЧтобы открыть список команд, введи "/help".'
     )
@@ -103,7 +166,8 @@ def main_menu(message):
 
     bot.send_message(
         chat_id=message.chat.id,
-        text=f'Чем займёмся, {name}?',
+        text='Чем займёмся, '
+             f'{read_from_database(user_id=message.chat.id)[0]}?',
         reply_markup=keyboard
     )
 
@@ -134,7 +198,8 @@ def photos_menu(message):
 
     bot.send_message(
         chat_id=message.chat.id,
-        text=f'Что мне сделать, {name}?',
+        text='Что мне сделать, '
+             f'{read_from_database(user_id=message.chat.id)[0]}?',
         reply_markup=keyboard
     )
 
@@ -174,7 +239,8 @@ def voices_menu(message):
 
     bot.send_message(
         chat_id=message.chat.id,
-        text=f'О чём мне рассказать, {name}?',
+        text='О чём мне рассказать, '
+             f'{read_from_database(user_id=message.chat.id)[0]}?',
         reply_markup=keyboard
     )
 
@@ -209,7 +275,8 @@ def send_voice_on_gpt(message):
     bot.send_voice(
         chat_id=message.chat.id,
         voice=open('media/audio_gpt.wav', 'rb'),
-        caption=f'Crash-course по GPT для бабушек. И для тебя, {name}.'
+        caption='Crash-course по GPT для бабушек. И для тебя, '
+                f'{read_from_database(user_id=message.chat.id)[0]}.'
     )
 
 
@@ -231,7 +298,9 @@ def send_voice_on_love(message):
     bot.send_voice(
         chat_id=message.chat.id,
         voice=open('media/audio_love.wav', 'rb'),
-        caption=f'Послушай, {name}, сказ о любви.'
+        caption='Послушай, '
+                f'{read_from_database(user_id=message.chat.id)[0]}'
+                ', сказ о любви.'
     )
 
 
@@ -259,4 +328,5 @@ def callback_catcher(call):
 
 
 # петля
+create_database()
 bot.polling(none_stop=True, interval=0)
