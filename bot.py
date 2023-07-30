@@ -1,11 +1,10 @@
-import sqlite3
 import os
-from typing import Tuple
-
+import sqlite3
 import telebot
 
 from dotenv import load_dotenv
 from telebot import types
+from typing import Tuple
 
 
 HELP_TEXT = (
@@ -14,6 +13,7 @@ HELP_TEXT = (
     '\n/help - вызывает этот список команд, вот так сюрприз!'
     '\n/start - знакомство с ботом и установка обращения к пользователю;'
     '\n/menu - главное меню бота;'
+    '\n/hobby - бот показывает хобби;'
     '\n/photos - меню фотографий;'
     '\n/selfie - бот отправляет пользователю селфи;'
     '\n/school - бот отправляет пользователю школьное фото;'
@@ -112,9 +112,6 @@ def helper(message):
 def start(message):
     """ Здоровается и предлагает выбрать обращение к пользователю. """
 
-    user_id = message.from_user.id
-    add_to_database(user_data=(user_id, 'Пользователь'))
-
     bot.send_message(
         chat_id=message.chat.id,
         text='Привет, пользователь! Как к тебе обращаться?'
@@ -131,6 +128,7 @@ def acquaintance(message):
     user_id = message.from_user.id
     name = message.text
     add_to_database(user_data=(user_id, name))
+
     if name in ('Аноним', 'Анонимус', 'Anonymous'):
         bot.send_photo(
             chat_id=message.chat.id,
@@ -156,19 +154,36 @@ def main_menu(message):
         text='Меню фотографий',
         callback_data='photos_menu'
     )
-    keyboard.add(key_photos)
 
-    key_photos = types.InlineKeyboardButton(
+    key_voices = types.InlineKeyboardButton(
         text='Меню голосовых сообщений',
         callback_data='voices_menu'
     )
-    keyboard.add(key_photos)
+
+    key_hobby = types.InlineKeyboardButton(
+        text='Показать хобби',
+        callback_data='hobby'
+    )
+    keyboard.add(key_photos, key_voices)
+    keyboard.add(key_hobby)
 
     bot.send_message(
         chat_id=message.chat.id,
         text='Чем займёмся, '
              f'{read_from_database(user_id=message.chat.id)[0]}?',
         reply_markup=keyboard
+    )
+
+
+@bot.message_handler(content_types=['text'], commands=['hobby'])
+def send_hobby(message):
+    """ Функция отправки видео ботом пользователю. """
+
+    bot.send_video(
+        chat_id=message.chat.id,
+        video=open('media/music.mp4', 'rb'),
+        caption='Поставьте скорость на 1.2 и берегите уши 🙉',
+
     )
 
 
@@ -307,6 +322,7 @@ def send_voice_on_love(message):
 # кнопочный менеджер
 command_functions = {
     'main_menu': main_menu,
+    'hobby': send_hobby,
     'photos_menu': photos_menu,
     'voices_menu': voices_menu,
     'selfie': send_selfie,
@@ -327,6 +343,6 @@ def callback_catcher(call):
         pass
 
 
-# петля
+# запуск
 create_database()
 bot.polling(none_stop=True, interval=0)
