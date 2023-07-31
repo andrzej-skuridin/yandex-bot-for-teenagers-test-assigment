@@ -183,7 +183,6 @@ def send_hobby(message):
         chat_id=message.chat.id,
         video=open('media/music.mp4', 'rb'),
         caption='Поставьте скорость на 1.2 и берегите уши 🙉',
-
     )
 
 
